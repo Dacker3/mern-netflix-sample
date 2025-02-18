@@ -65,7 +65,34 @@ export async function signup(req,res){
 }
 
 export async function login(req,res){
-    res.send("login route");
+    try{
+        const {email, password} = req.body;
+        
+        if(!email || !password){
+            return res.status(400).json({success:false, message:"All fields are required"})
+        }
+
+        const user = await User.findOne({email:email});
+        if(!user){
+            return res.status(400).json({success:false, message:"Invalid credentials"})
+        }
+
+        const isPasswordValid = await bcryptjs.compare(password, user.password);
+        if(!isPasswordValid){
+            return res.status(400).json({success:false, message:"Invalid credentials"})
+        }
+
+        generateTokenAndSetCookie(user._id, res);
+
+        res.status(200).json({success: true, user:{ 
+            ...user._doc,
+            password:""
+        }});
+        
+    } catch(error){
+        console.log("Error in login controller", error.message);
+        res.status(500).json({success: false, message: "Internal server error"}); 
+    }
 }
 
 export async function signout(req,res){
